@@ -64,7 +64,8 @@ namespace Mono.Reflection {
 		readonly Type [] type_arguments;
 		readonly Type [] method_arguments;
 		readonly ByteBuffer il;
-		readonly ParameterInfo [] parameters;
+        readonly ThisParameter this_parameter;
+        readonly ParameterInfo [] parameters;
 		readonly IList<LocalVariableInfo> locals;
 		readonly List<Instruction> instructions;
 
@@ -86,7 +87,11 @@ namespace Mono.Reflection {
 			if (method.DeclaringType != null)
 				type_arguments = method.DeclaringType.GetGenericArguments ();
 
-			this.parameters = method.GetParameters ();
+            if (!method.IsStatic)
+                this_parameter = new ThisParameter(method.DeclaringType);
+
+
+            this.parameters = method.GetParameters ();
 			this.locals = body.LocalVariables;
 			this.module = method.Module;
 			this.il = new ByteBuffer (bytes);
@@ -239,7 +244,10 @@ namespace Mono.Reflection {
 
 		ParameterInfo GetParameter (int index)
 		{
-			return parameters [method.IsStatic ? index : index - 1];
+            if (index == 0 && !method.IsStatic)
+                return this_parameter;
+            else
+                return parameters [method.IsStatic ? index : index - 1];
 		}
 
 		OpCode ReadOpCode ()
